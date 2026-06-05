@@ -1,0 +1,166 @@
+{% load static %}
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Fake News Prediction | Intelligence Platform</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+
+<body data-has-result="{% if output or error %}true{% else %}false{% endif %}">
+    <div id="page">
+
+        <!-- NAV -->
+        <nav class="colorlib-nav">
+            <div class="container">
+                <div class="row" style="display: flex; align-items: center;">
+                    <div class="col-md-4">
+                        <div id="colorlib-logo"><a href="/">VERIFEX.AI</a></div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- HERO -->
+        <div class="colorlib-intro">
+            <div class="container text-center">
+                <h1 class="hero-title">Narrative Decision Intelligence</h1>
+                <p style="color: #666; font-size: 18px;">Verification of information integrity using Agentic AI.</p>
+
+                <div class="row" style="margin-top: 50px;">
+                    <div class="col-md-8 col-md-offset-2">
+                        <form method="POST">
+                            {% csrf_token %}
+                            <textarea name="message" class="form-control" rows="5"
+                                placeholder="Paste narrative snippet or a news URL...">{{ original_text }}</textarea>
+                            <button type="submit" class="btn btn-pill" style="margin-top: 25px;">Analyze Intelligence</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- ERROR BOX -->
+                {% if error %}
+                <div class="row" style="margin-top: 40px;">
+                    <div class="col-md-8 col-md-offset-2">
+                        <div class="intel-card">
+                            <div class="side-stripe stripe-dark"></div>
+                            <div class="intel-body">
+                                <span class="card-eyebrow">Input Error</span>
+                                <p class="card-text">{{ error }}</p>
+                            </div>
+                            <i class="fa-solid fa-triangle-exclamation card-ico"></i>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- RESULT BOX -->
+                {% if output %}
+                <div class="row" style="margin-top: 40px;">
+                    <div class="col-md-8 col-md-offset-2">
+                        <div class="intel-card">
+                            <div class="side-stripe {% if 'Real' in output %}stripe-real{% else %}stripe-fake{% endif %}"></div>
+                            <div class="intel-body">
+                                <span class="card-eyebrow">
+                                    {% if 'Real' in output %}Verified Narrative{% else %}Flagged Narrative{% endif %}
+                                </span>
+                                <div class="result-top">
+                                    <h3 class="result-verdict {% if 'Real' in output %}verdict-real{% else %}verdict-fake{% endif %}">
+                                        {{ output }}
+                                    </h3>
+                                    <div class="score-box">
+                                        <span class="score-num">{{ confidence }}%</span>
+                                        <span class="score-lbl">confidence</span>
+                                    </div>
+                                </div>
+                                <div class="conf-track">
+                                    <div class="conf-fill {% if 'Real' in output %}fill-real{% else %}fill-fake{% endif %}"
+                                         style="width: {{ confidence|default:0 }}%;"></div>
+                                </div>
+                                <div class="reason-box" style="margin-top: 18px;">
+                                    <span class="card-eyebrow" style="margin-bottom: 5px; display: block;">Analysis</span>
+                                    <p>{{ reasoning }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+
+        <!-- HISTORY SECTION -->
+        <div class="history-section">
+            <div class="container text-center">
+                <h2 style="font-family: 'Playfair Display', serif; font-size: 3.5rem; color: #000;">
+                    Intelligence Log
+                </h2>
+
+                <div class="history-grid" id="historyGrid">
+                    {% if history %}
+                        {% for item in history %}
+                        <div class="history-card {% if forloop.counter > 3 %}hidden-card{% endif %}">
+                            <div class="status-pill {% if 'Real' in item.prediction %}pill-real{% else %}pill-fake{% endif %}">
+                                {{ item.prediction }}
+                            </div>
+                            <h4 class="news-snippet">{{ item.news_text|truncatechars:70 }}</h4>
+                            <div class="reason-box">
+                                <p>{{ item.reasoning|default:"Statistical pattern matched." }}</p>
+                            </div>
+                            <div class="card-footer-row">
+                                <span><i class="fa-solid fa-bolt"></i> {{ item.confidence }}% Score</span>
+                                <span>{{ item.created_at|date:"d M" }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center" style="grid-column: 1/-1; padding: 40px; border: 2px dashed #eee; border-radius: 20px;">
+                            <p style="color: #999;">No historical narratives processed yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if history %}
+                <button id="viewMoreBtn" class="btn btn-view-more">View Full Dataset</button>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const viewMoreBtn = document.getElementById('viewMoreBtn');
+        if (viewMoreBtn) {
+            viewMoreBtn.addEventListener('click', function () {
+                document.querySelectorAll('.hidden-card').forEach((card, i) => {
+                    setTimeout(() => {
+                        card.classList.remove('hidden-card');
+                        card.classList.add('visible');
+                    }, i * 100);
+                });
+                this.style.display = 'none';
+            });
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('visible');
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.history-card:not(.hidden-card)').forEach(card => observer.observe(card));
+
+        if (document.body.dataset.hasResult === 'true') {
+            setTimeout(() => {
+                const target = document.querySelector('.intel-card');
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 120);
+        }
+    </script>
+</body>
+</html>
